@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BIC Weapons</title>
+  <style>
+    /* STYLE OMITTED FOR BREVITY — same CSS as your pasted HTML */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      font-family: "Inter", sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      overflow: hidden;
+    }
+    .container { display: grid; grid-template-columns: 280px auto; height: 100vh; }
+    .sidebar { background: #010409; border-right: 1px solid #30363d; padding: 20px; overflow-y: auto; }
+    .sidebar h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .sidebar p { font-size: 13px; color: #8b949e; margin-bottom: 20px; }
+    .label { font-size: 12px; font-weight: 600; text-transform: uppercase; color: #8b949e; margin: 14px 0 6px; }
+    select, input[type=text] { width: 100%; padding: 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; margin-bottom: 12px; }
+    .main { overflow-y: auto; padding: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .card { background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d; cursor: pointer; transition: 0.2s; }
+    .card:hover { border-color: #4185f4; transform: translateY(-2px); }
+    .card img { width: 100%; height: 150px; object-fit: contain; margin-bottom: 12px; }
+    .card h3 { font-size: 16px; margin-bottom: 4px; }
+    .card p { font-size: 13px; color: #8b949e; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; }
+    .modal { background: #0d1117; border: 1px solid #30363d; width: 600px; max-width: 92%; border-radius: 10px; padding: 20px; }
+    .modal h2 { font-size: 22px; margin-bottom: 8px; }
+    .modal p { color: #8b949e; margin-bottom: 14px; }
+    .modal .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .modal button { background: #238636; padding: 10px 16px; border: none; color: white; border-radius: 6px; font-size: 14px; cursor: pointer; transition: 0.2s; }
+    .modal button:hover { background: #2ea043; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <aside class="sidebar">
+    <h1>Windy City Weapons</h1>
+    <p>Your trusted firearm lookup database.</p>
+    <label class="label">Search</label>
+    <input id="search" type="text" placeholder="Search weapons…" />
+    <label class="label">Sort</label>
+    <select id="sort">
+      <option value="name">Name</option>
+      <option value="price">Price</option>
+      <option value="type">Type</option>
+    </select>
+    <div class="tabs" style="margin-top:10px; margin-bottom:15px; display:flex; gap:6px;">
+        <button data-tier="1">Tier 1</button>
+        <button data-tier="2">Tier 2</button>
+        <button data-tier="all">All</button>
+    </div>
+    <label class="label">Filter by Category</label>
+    <select id="category">
+      <option value="all">All</option>
+      <option value="pistol">Pistol</option>
+      <option value="rifle">Rifle</option>
+      <option value="smg">SMG</option>
+      <option value="shotgun">Shotgun</option>
+    </select>
+  </aside>
+  <main class="main">
+    <div id="grid" class="grid"></div>
+  </main>
+</div>
+<div id="modalBg" class="modal-bg">
+  <div class="modal">
+    <h2 id="mName"></h2>
+    <p id="mDesc"></p>
+    <div class="stats">
+      <div><strong>Type</strong><br><span id="mType"></span></div>
+      <div><strong>Price</strong><br>$<span id="mPrice"></span></div>
+      <div><strong>ID</strong><br><span id="mID"></span></div>
+    </div>
+    <button id="closeBtn">Close</button>
+  </div>
+</div>
+<script>
+  let selectedTier = null;
+  const weapons = [
+    { id:"p88", name:"Walther P88", type:"pistol", price:450, desc:"Classic .45 caliber pistol.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_p88.png", tier:1 },
+    { id:"g20", name:"Glock 20", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g20.png", tier:1 },
+    { id:"g26", name:"Glock 26", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g26.png", tier:1 },
+    { id:"tp9", name:"Canik TP9", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_tp9.png", tier:1 },
+    { id:"g32", name:"Glock 45", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g32.png", tier:1 },
+    { id:"wglock19", name:"Glock 19", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_wglock19.png", tier:1 },
+    { id:"wglock17", name:"Glock 17", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_wglock17.png", tier:1 },
+    { id:"g19x", name:"Glock 19x", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g17flex.png", tier:1 },
+    { id:"sig", name:"Sig P320", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_sig.png", tier:1 },
+    { id:"g22", name:"Glock 22", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g22.png", tier:1 },
+    { id:"g41", name:"Glock 41", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g41.png", tier:1 },
+    { id:"glock23", name:"Glock 23", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_wglock23.png", tier:1 },
+    { id:"oliveg19x", name:"Olive Glock 19x", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_greeng19x.png", tier:1 },
+    { id:"oliveglock17", name:"Olive Glock 17", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g17g4.png", tier:1 },
+    { id:"hk45", name:"HK45", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_hk45.png", tier:1 },
+    { id:"glock43", name:"Glock 43", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_glock26binary.png", tier:1 },
+    { id:"g17g5mos", name:"Glock 17 Gen 5 MOS", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g17g5mos.png", tier:1 },
+    { id:"1911", name:"1911", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/1911.png", tier:1 },
+    { id:"wglock45", name:"Glock 45", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_wglock45.png", tier:1 },
+    { id:"g30", name:"Glock 30", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g30.png", tier:1 },
+    { id:"g19flex", name:"Glock 19 G Flex", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g19flex.png", tier:1 },
+    { id:"g23", name:"Glock 23", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g23.png", tier:1 },
+    { id:"fnmos", name:"FN57", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_fnmos.png", tier:1 },
+    { id:"g40", name:"Glock 40 Gen 4", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g40.png", tier:1 },
+    { id:"g19grip", name:"Glock 19", type:"pistol", price:500, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g19grip.png", tier:1 },
+    { id:"g26switch", name:"G26 with A Switch", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_glock26switch.png", tier:2 },
+    { id:"g23s", name:"G with A Switch", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g23s.png", tier:2 },
+    { id:"redswitchg19", name:"G20 with A Switch", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g45switch.png", tier:2 },
+    { id:"fnx45mos", name:"FNX Red Dot", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_fnreddot.png", tier:2 },
+    { id:"fn57", name:"FN57", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_fn57.png", tier:2 },
+    { id:"c19", name:"G43x Mos", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_c19.png", tier:2 },
+    { id:"g45c", name:"G45 Mos", type:"pistol", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g45c.png", tier:2 },
+    { id:"mac10", name:"Mac 10", type:"smg", price:950, desc:"Compact Israeli submachine gun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_mac10.png", tier:2 },
+    { id:"tec9", name:"Tec 9", type:"smg", price:950, desc:"Compact Israeli submachine gun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_tec9s.png", tier:2 },
+    { id:"binaryarp", name:"Binary ARP", type:"rifle", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_binarytrigarp.png", tier:2 },
+    { id:"microdraco", name:"Draco", type:"rifle", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_microdraco.png", tier:2 },
+    { id:"arpdrum", name:"ARP Drum", type:"rifle", price:1400, desc:"Standard US service rifle.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_arpdrum.png", tier:2 },
+    { id:"bdraco", name:"Black Draco", type:"rifle", price:1200, desc:"Compact 9mm handgun.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_bdraco.png", tier:2 },
+    { id:"g45magholder", name:"G45 Mag Holder", type:"pistol", price:1400, desc:"Standard US service rifle.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_g45wing.png", tier:2 },
+    { id:"krissvector", name:"Kriss Vector", type:"smg", price:1400, desc:"Standard US service rifle.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_krissvector.png", tier:2 },
+    { id:"mcx", name:"Sig MCX", type:"rifle", price:1400, desc:"Standard US service rifle.", img:"https://r2.fivemanage.com/Nlk2I6guxT1DoZVWOPhxM/weapon_gharp.png", tier:2 }
+  ];
+  const grid = document.getElementById("grid");
+  const search = document.getElementById("search");
+  const sort = document.getElementById("sort");
+  const cat  = document.getElementById("category");
+
+  const modalBg = document.getElementById("modalBg");
+  const mName = document.getElementById("mName");
+  const mDesc = document.getElementById("mDesc");
+  const mType = document.getElementById("mType");
+  const mPrice = document.getElementById("mPrice");
+  const mID = document.getElementById("mID");
+  document.getElementById("closeBtn").onclick = ()=> modalBg.style.display="none";
+
+  function render() {
+    grid.innerHTML = "";
+
+    let list = [...weapons];
+
+    // search
+    const q = search.value.toLowerCase();
+    if (q) list = list.filter(w => w.name.toLowerCase().includes(q) || w.id.includes(q));
+
+    // tier
+    if (selectedTier && selectedTier !== "all") list = list.filter(w => String(w.tier) == selectedTier);
+
+    // category
+    if (cat.value !== "all") list = list.filter(w => w.type === cat.value);
+
+    // sort
+    list.sort((a,b) => {
+      if (sort.value === "price") return a.price - b.price;
+      if (sort.value === "type") return a.type.localeCompare(b.type);
+      return a.name.localeCompare(b.name);
+    });
+
+    // build cards
+    for (const w of list) {
+      const c = document.createElement("div");
+      c.className = "card";
+      c.innerHTML = `<img src="${w.img}"><h3>${w.name}</h3><p>${w.type.toUpperCase()} • $${w.price}</p>`;
+      c.onclick = () => openModal(w);
+      grid.appendChild(c);
+    }
+  }
+
+  function openModal(w) {
+    mName.textContent = w.name;
+    mDesc.textContent = w.desc;
+    mType.textContent = w.type.toUpperCase();
+    mPrice.textContent = w.price;
+    mID.textContent = w.id;
+    modalBg.style.display = "flex";
+  }
+  search.oninput = render;
+  sort.onchange = render;
+  cat.onchange = render;
+  document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.onclick = () => {
+      selectedTier = btn.dataset.tier;
+      render();
+    };
+  });
+  render();
+</script>
+</body>
+</html>
